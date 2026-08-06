@@ -1,0 +1,18 @@
+# Render 部署配置 —— 五游活动倒计时台（全栈：Express 同时托管 API + 静态 dist）
+# 用法：把本仓库推到 GitHub，在 Render 后台 New → Blueprint，连接该仓库即可自动按此配置上线。
+services:
+  - type: web
+    name: game-timer
+    runtime: node
+    plan: free            # 免费层：15 分钟无访问会休眠，下次打开需等几秒唤醒
+    region: oregon        # 免费层可选区有限；国内访问可改 singapore（若可选）
+    branch: main
+    # 关键：NODE_ENV=production 会让 npm 默认裁剪 devDependencies，
+    # 而 vite / tsc / tsx 都是 devDependency；显式 --include=dev 保证构建与运行都能拿到工具链。
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/activities
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # 注意：PORT 由 Render 自动注入，无需在此声明；server/index.ts 已读取 process.env.PORT。

@@ -1,0 +1,27 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 运行时数据（SQLite / 密钥）—— 不要入库
+data/
+*.db
+*.db-journal
+.secret
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 系统 / 日志
+.DS_Store
+npm-debug.log*
+qa-shots/
+
+# 构建临时文件 / 本地验证产物
+vite.config.ts.timestamp-*.mjs
+dist-verify/
+
+# 一次性联调测试脚本（不入库）
+server/sources/__*.ts
+server/accounts/__*.ts

@@ -1,0 +1,3263 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   五游活动倒计时台 — 视觉基座
+   所有颜色一律走 CSS 变量；:root = 深色（默认），[data-theme="light"] 覆盖。
+   主题切换由 document.documentElement.dataset.theme 驱动。
+   ===================================================================== */
+
+/* ---------------------------------------------------------------
+   1. 主题变量 — 深色（默认）
+   --------------------------------------------------------------- */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* 背景层级：近黑蓝 */
+  --bg-base: #0a0d16;
+  --bg-base-2: #070912;
+  --bg-elev: #121726;
+  --bg-elev-2: #1a2032;
+  --bg-elev-3: #232a40;
+  --bg-glass: rgba(20, 26, 43, 0.62);
+  --bg-glass-hover: rgba(28, 36, 58, 0.76);
+  --bg-overlay: rgba(4, 6, 12, 0.72);
+  --bg-sunken: rgba(255, 255, 255, 0.03);
+
+  /* 文本：逐级对比度 16.8 / 7.4 / 4.7 : 1（对 --bg-elev）
+     text-3 提亮一档，保证落在最高一层底色 --bg-elev-3(#232a40) 上仍 >= 4.5:1 */
+  --text-1: #eef1f8;
+  --text-2: #aab3c9;
+  --text-3: #8893af;
+  --text-inv: #0a0d16;
+  --text-on-accent: #0a0d16;
+
+  /* 描边 */
+  --border-1: rgba(255, 255, 255, 0.09);
+  --border-2: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.28);
+
+  /* 品牌 */
+  --brand: #6ea8ff;
+  --brand-2: #9d7bff;
+  --brand-soft: rgba(110, 168, 255, 0.16);
+  --brand-ink: #8fbcff;
+
+  /* 语义色 */
+  --danger: #ff5d6c;
+  --danger-ink: #ff8f9b;
+  --danger-soft: rgba(255, 93, 108, 0.16);
+  --warn: #ffb020;
+  --warn-ink: #ffc65c;
+  --warn-soft: rgba(255, 176, 32, 0.15);
+  --success: #35d29a;
+  --success-ink: #5fe0b3;
+  --success-soft: rgba(53, 210, 154, 0.15);
+
+  /* 阴影 / 辉光 */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.42), 0 12px 32px rgba(0, 0, 0, 0.34);
+  --shadow-3: 0 12px 40px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.42);
+  --glow-strength: 0.55;
+  --glow-blur: 34px;
+  --ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--brand);
+
+  /* 氛围层 */
+  --noise-opacity: 0.05;
+  --particle-alpha: 0.72;
+  --aurora-1: rgba(110, 168, 255, 0.16);
+  --aurora-2: rgba(157, 123, 255, 0.14);
+  --aurora-3: rgba(79, 209, 232, 0.1);
+  --grid-line: rgba(255, 255, 255, 0.028);
+
+  /* 卡片玻璃 */
+  --glass-blur: 18px;
+  --glass-sat: 150%;
+  --card-radius: 18px;
+  --card-top-sheen: rgba(255, 255, 255, 0.07);
+  --skeleton-base: rgba(255, 255, 255, 0.045);
+  --skeleton-sheen: rgba(255, 255, 255, 0.11);
+
+  /* 游戏/分类色的兜底值（无 data-game / data-cat 时继承这里，避免出现空变量） */
+  --ga: var(--brand);
+  --ga2: var(--brand-2);
+  --ga-ink: var(--brand-ink);
+  --ga-soft: var(--brand-soft);
+  --ga-rgb: 110, 168, 255;
+  --cat: var(--brand);
+  --cat-ink: var(--brand-ink);
+  --cat-soft: var(--brand-soft);
+
+  /* 字体 */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --font-num: 'Bahnschrift', 'DIN Alternate', 'Roboto Condensed', 'Segoe UI Variable Display',
+    'Helvetica Neue', var(--font-ui);
+}
+
+/* ---------------------------------------------------------------
+   2. 主题变量 — 明亮（独立设计，不是深色调白）
+   --------------------------------------------------------------- */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-base: #f6f7fb;
+  --bg-base-2: #eceff7;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #f2f4fa;
+  --bg-elev-3: #e8ecf6;
+  --bg-glass: rgba(255, 255, 255, 0.74);
+  --bg-glass-hover: rgba(255, 255, 255, 0.92);
+  --bg-overlay: rgba(24, 30, 46, 0.42);
+  --bg-sunken: rgba(16, 22, 40, 0.04);
+
+  /* 对比度实测（对 #ffffff）：17.4 / 8.1 / 5.4 : 1
+     text-3 压暗一档，保证落在最深一层底色 --bg-elev-3(#e8ecf6) 上仍 >= 4.5:1 */
+  --text-1: #141a26;
+  --text-2: #485064;
+  --text-3: #61697f;
+  --text-inv: #ffffff;
+  --text-on-accent: #ffffff;
+
+  --border-1: rgba(18, 24, 42, 0.1);
+  --border-2: rgba(18, 24, 42, 0.16);
+  --border-strong: rgba(18, 24, 42, 0.3);
+
+  --brand: #3f6fe0;
+  --brand-2: #7a52d8;
+  --brand-soft: rgba(63, 111, 224, 0.12);
+  --brand-ink: #2f56b8;
+
+  --danger: #e03048;
+  --danger-ink: #c31832;
+  --danger-soft: rgba(224, 48, 72, 0.1);
+  --warn: #e08a00;
+  --warn-ink: #96560a;
+  --warn-soft: rgba(224, 138, 0, 0.14);
+  --success: #0a8c63;
+  --success-ink: #076b48;
+  --success-soft: rgba(15, 162, 115, 0.12);
+
+  --shadow-1: 0 1px 2px rgba(24, 32, 56, 0.06), 0 2px 8px rgba(24, 32, 56, 0.06);
+  --shadow-2: 0 4px 14px rgba(24, 32, 56, 0.08), 0 10px 28px rgba(24, 32, 56, 0.08);
+  --shadow-3: 0 10px 30px rgba(24, 32, 56, 0.1), 0 22px 56px rgba(24, 32, 56, 0.1);
+  --glow-strength: 0.24;
+  --glow-blur: 26px;
+  --ring: 0 0 0 2px #ffffff, 0 0 0 4px var(--brand);
+
+  --noise-opacity: 0.028;
+  --particle-alpha: 0.2;
+  --aurora-1: rgba(63, 111, 224, 0.09);
+  --aurora-2: rgba(122, 82, 216, 0.08);
+  --aurora-3: rgba(15, 162, 115, 0.06);
+  --grid-line: rgba(20, 26, 38, 0.035);
+
+  --glass-blur: 14px;
+  --glass-sat: 130%;
+  --card-top-sheen: rgba(255, 255, 255, 0.9);
+  --skeleton-base: rgba(20, 26, 38, 0.05);
+  --skeleton-sheen: rgba(255, 255, 255, 0.85);
+}
+
+/* ---------------------------------------------------------------
+   3. 五游戏主题色
+   --ga  主色（用于描边/辉光，深浅通用）
+   --ga2 副色（渐变末端）
+   --ga-ink 可读文字色（明亮主题下压暗，保证 >=4.5:1）
+   --ga-soft 淡底
+   --------------------------------------------------------------- */
+[data-game='genshin'] {
+  --ga: #d8b26a;
+  --ga2: #8fd0ff;
+  --ga-ink: #e6c88a;
+  --ga-soft: rgba(216, 178, 106, 0.14);
+  --ga-rgb: 216, 178, 106;
+}
+[data-game='starrail'] {
+  --ga: #a98cff;
+  --ga2: #ffd166;
+  --ga-ink: #bda6ff;
+  --ga-soft: rgba(169, 140, 255, 0.15);
+  --ga-rgb: 169, 140, 255;
+}
+[data-game='zzz'] {
+  --ga: #b8f34a;
+  --ga2: #ff5c8a;
+  --ga-ink: #c6f56d;
+  --ga-soft: rgba(184, 243, 74, 0.14);
+  --ga-rgb: 184, 243, 74;
+}
+[data-game='wuwa'] {
+  --ga: #4fd1e8;
+  --ga2: #7c8cff;
+  --ga-ink: #6fdcef;
+  --ga-soft: rgba(79, 209, 232, 0.14);
+  --ga-rgb: 79, 209, 232;
+}
+[data-game='endfield'] {
+  --ga: #ff8a3d;
+  --ga2: #5ad1a5;
+  --ga-ink: #ffa165;
+  --ga-soft: rgba(255, 138, 61, 0.14);
+  --ga-rgb: 255, 138, 61;
+}
+
+/* 明亮主题下把文字用色压暗到可读区间（WCAG AA >= 4.5:1） */
+[data-theme='light'] [data-game='genshin'] {
+  --ga-ink: #705208;
+  --ga-soft: rgba(216, 178, 106, 0.2);
+}
+[data-theme='light'] [data-game='starrail'] {
+  --ga-ink: #4d2eb0;
+  --ga-soft: rgba(169, 140, 255, 0.16);
+}
+[data-theme='light'] [data-game='zzz'] {
+  --ga-ink: #4a6404;
+  --ga-soft: rgba(150, 205, 55, 0.2);
+}
+[data-theme='light'] [data-game='wuwa'] {
+  --ga-ink: #0a6678;
+  --ga-soft: rgba(79, 209, 232, 0.18);
+}
+[data-theme='light'] [data-game='endfield'] {
+  --ga-ink: #9e3f08;
+  --ga-soft: rgba(255, 138, 61, 0.16);
+}
+
+/* 分类徽章配色 */
+[data-cat='gacha'] {
+  --cat: #ff7ab6;
+  --cat-ink: #ff9ac9;
+  --cat-soft: rgba(255, 122, 182, 0.16);
+}
+[data-cat='activity'] {
+  --cat: #5ad1a5;
+  --cat-ink: #7bdcb8;
+  --cat-soft: rgba(90, 209, 165, 0.16);
+}
+[data-cat='version'] {
+  --cat: #6ea8ff;
+  --cat-ink: #8fbcff;
+  --cat-soft: rgba(110, 168, 255, 0.16);
+}
+[data-cat='notice'] {
+  --cat: #9aa4bd;
+  --cat-ink: #b0b9cf;
+  --cat-soft: rgba(154, 164, 189, 0.16);
+}
+[data-theme='light'] [data-cat='gacha'] {
+  --cat-ink: #a02060;
+  --cat-soft: rgba(255, 122, 182, 0.16);
+}
+[data-theme='light'] [data-cat='activity'] {
+  --cat-ink: #08684a;
+  --cat-soft: rgba(90, 209, 165, 0.18);
+}
+[data-theme='light'] [data-cat='version'] {
+  --cat-ink: #1a4db5;
+  --cat-soft: rgba(110, 168, 255, 0.16);
+}
+[data-theme='light'] [data-cat='notice'] {
+  --cat-ink: #58617a;
+  --cat-soft: rgba(120, 130, 155, 0.14);
+}
+
+/* ---------------------------------------------------------------
+   4. TDesign 变量映射（Dialog / Input 等基础件跟随主题）
+   --------------------------------------------------------------- */
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --td-brand-color: var(--brand);
+  --td-brand-color-hover: var(--brand-2);
+  --td-brand-color-active: var(--brand-ink);
+  --td-brand-color-light: var(--brand-soft);
+  --td-brand-color-focus: var(--brand-soft);
+
+  --td-bg-color-page: var(--bg-base);
+  --td-bg-color-container: var(--bg-elev);
+  --td-bg-color-container-hover: var(--bg-elev-2);
+  --td-bg-color-container-active: var(--bg-elev-3);
+  --td-bg-color-secondarycontainer: var(--bg-elev-2);
+  --td-bg-color-secondarycontainer-hover: var(--bg-elev-3);
+  --td-bg-color-component: var(--bg-elev-2);
+  --td-bg-color-component-hover: var(--bg-elev-3);
+  --td-bg-color-component-disabled: var(--bg-sunken);
+
+  --td-text-color-primary: var(--text-1);
+  --td-text-color-secondary: var(--text-2);
+  --td-text-color-placeholder: var(--text-3);
+  --td-text-color-disabled: var(--text-3);
+  --td-text-color-anti: var(--text-inv);
+
+  --td-border-level-1-color: var(--border-1);
+  --td-border-level-2-color: var(--border-2);
+  --td-component-stroke: var(--border-1);
+  --td-component-border: var(--border-2);
+
+  --td-error-color: var(--danger);
+  --td-warning-color: var(--warn);
+  --td-success-color: var(--success);
+
+  --td-mask-active: var(--bg-overlay);
+  --td-shadow-1: var(--shadow-1);
+  --td-shadow-2: var(--shadow-2);
+  --td-shadow-3: var(--shadow-3);
+  --td-radius-small: 6px;
+  --td-radius-default: 10px;
+  --td-radius-medium: 12px;
+  --td-radius-large: 16px;
+  --td-radius-extraLarge: 20px;
+}
+
+/* ---------------------------------------------------------------
+   5. 基础重置（preflight 关闭，手工补齐；不污染 tdesign 组件）
+   --------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  overflow-x: hidden;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  background-color: var(--bg-base);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.45s ease, color 0.45s ease;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--text-1);
+}
+
+/* 滚动条 */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+  background-clip: content-box;
+}
+
+/* 统一焦点可见样式 */
+:where(button, a, [role='button'], input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 10px;
+}
+
+/* ---------------------------------------------------------------
+   6. 关键帧
+   --------------------------------------------------------------- */
+@keyframes gt-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes gt-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gt-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.012) translateY(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 数字翻滚：上一位翻走的错觉由裁切 + 透视旋转完成 */
+@keyframes gt-digit-roll {
+  0% {
+    opacity: 0;
+    transform: translateY(78%) rotateX(-72deg) scale(0.92);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg) scale(1);
+  }
+}
+
+@keyframes gt-digit-ghost {
+  0% {
+    opacity: 0.5;
+    transform: translateY(0) rotateX(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-78%) rotateX(72deg);
+  }
+}
+
+/* <24h 呼吸辉光 */
+@keyframes gt-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--warn-soft), var(--shadow-2);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent, 0 0 26px -4px var(--warn), var(--shadow-2);
+  }
+}
+
+/* <1h 急促脉冲 */
+@keyframes gt-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--danger-soft), var(--shadow-2);
+    border-color: var(--danger);
+  }
+  50% {
+    box-shadow: 0 0 0 7px transparent, 0 0 30px -2px var(--danger), var(--shadow-2);
+    border-color: var(--danger);
+  }
+}
+
+@keyframes gt-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@keyframes gt-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@keyframes gt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gt-draw-check {
+  from {
+    stroke-dashoffset: 30;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes gt-check-burst {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@keyframes gt-aurora {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+}
+
+@keyframes gt-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes gt-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------------------------------------------------------------
+   7. 氛围背景层（ParticleBackground）
+   --------------------------------------------------------------- */
+.gt-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.gt-bg__grad {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(46% 38% at 14% 8%, var(--aurora-1), transparent 62%),
+    radial-gradient(44% 40% at 88% 12%, var(--aurora-2), transparent 64%),
+    radial-gradient(52% 44% at 50% 100%, var(--aurora-3), transparent 66%);
+  animation: gt-aurora 26s ease-in-out infinite;
+  will-change: transform;
+}
+
+.gt-bg__grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 100% 70% at 50% 0%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 70% at 50% 0%, #000 20%, transparent 78%);
+}
+
+.gt-bg__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 细噪点 */
+.gt-bg__noise {
+  position: absolute;
+  inset: 0;
+  opacity: var(--noise-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------
+   8. 通用玻璃面 / 按钮
+   --------------------------------------------------------------- */
+.gt-glass {
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border-1);
+}
+
+.gt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-glass);
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: background-color 0.22s ease, border-color 0.22s ease, transform 0.18s ease,
+    box-shadow 0.22s ease, color 0.22s ease;
+}
+.gt-btn:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-2);
+  transform: translateY(-1px);
+}
+.gt-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.gt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gt-btn--icon {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.gt-btn--primary {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  border-color: transparent;
+  color: #fff;
+  min-width: 44px;
+  box-shadow: 0 6px 20px -8px var(--brand);
+}
+.gt-btn--primary:hover {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  filter: brightness(1.08);
+  box-shadow: 0 10px 26px -8px var(--brand);
+}
+
+.gt-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-2);
+}
+.gt-btn--ghost:hover {
+  background: var(--bg-sunken);
+  color: var(--text-1);
+}
+
+/* 卡片通用外框 */
+.gt-surface {
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--border-1);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-1);
+}
+
+/* ---------------------------------------------------------------
+   9. AppHeader
+   --------------------------------------------------------------- */
+.gt-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg-base) 78%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border-bottom: 1px solid var(--border-1);
+  transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .gt-header {
+    background: var(--bg-glass);
+  }
+}
+
+.gt-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  min-height: 62px;
+}
+
+.gt-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gt-brand__mark {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(140deg, var(--brand), var(--brand-2));
+  box-shadow: 0 6px 18px -6px var(--brand);
+  color: #fff;
+  overflow: hidden;
+}
+.gt-brand__mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.55), transparent 65%);
+  transform: translateX(-100%);
+  animation: gt-sweep 4.5s ease-in-out infinite;
+}
+
+.gt-brand__title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: linear-gradient(100deg, var(--text-1), var(--brand-ink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gt-brand__sub {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* 主题切换 */
+.gt-theme-toggle {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-glass);
+  color: var(--text-2);
+  cursor: pointer;
+  overflow: hidden;
+  transition: color 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
+}
+.gt-theme-toggle:hover {
+  color: var(--text-1);
+  border-color: var(--border-2);
+}
+.gt-theme-toggle__icon {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  transition: transform 0.55s cubic-bezier(0.34, 1.4, 0.5, 1), opacity 0.35s ease;
+}
+.gt-theme-toggle__icon[data-hidden='true'] {
+  opacity: 0;
+  transform: rotate(-120deg) scale(0.3);
+}
+.gt-theme-toggle__icon[data-hidden='false'] {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.gt-refresh-icon {
+  transition: transform 0.4s ease;
+}
+.gt-refresh-icon[data-spin='true'] {
+  animation: gt-spin 0.9s linear infinite;
+}
+.gt-btn:hover .gt-refresh-icon[data-spin='false'] {
+  transform: rotate(90deg);
+}
+
+/* 更新时间胶囊 */
+.gt-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-1);
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.gt-updated--desktop {
+  display: none;
+}
+@media (min-width: 768px) {
+  .gt-updated--desktop {
+    display: inline-flex;
+  }
+}
+.gt-updated__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: gt-dot-pulse 2.4s ease-in-out infinite;
+}
+
+/* 用户菜单 */
+.gt-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-3);
+  animation: gt-pop-in 0.2s ease-out both;
+  transform-origin: top right;
+  z-index: 60;
+}
+.gt-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.gt-menu__item:hover {
+  background: var(--bg-elev-2);
+  color: var(--text-1);
+}
+.gt-menu__item--danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
+
+.gt-avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(140deg, var(--brand), var(--brand-2));
+}
+
+/* ---------------------------------------------------------------
+   10. GameFilterBar
+   --------------------------------------------------------------- */
+.gt-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 2px 8px;
+}
+/* chip 滚动吸附（保留给未来横向模式复用） */
+
+.gt-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-glass);
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  filter: saturate(0.35);
+  transition: color 0.24s ease, border-color 0.24s ease, background-color 0.24s ease,
+    box-shadow 0.28s ease, filter 0.28s ease, transform 0.18s ease;
+}
+@media (max-width: 420px) {
+  .gt-chip {
+    padding: 0 10px;
+    font-size: 13px;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+  .gt-chip__count {
+    min-width: 20px;
+    height: 18px;
+    font-size: 10px;
+    padding: 0 5px;
+  }
+}
+.gt-chip:hover {
+  filter: saturate(0.85);
+  color: var(--text-1);
+  transform: translateY(-1px);
+}
+.gt-chip[aria-pressed='true'] {
+  filter: saturate(1);
+  color: var(--ga-ink);
+  border-color: color-mix(in srgb, var(--ga) 55%, transparent);
+  background: var(--ga-soft);
+  box-shadow: 0 0 var(--glow-blur) -10px var(--ga), 0 0 0 1px color-mix(in srgb, var(--ga) 28%, transparent) inset;
+}
+
+/* 分类筛选 chip：复用 gt-chip 外观，颜色改由分类色 --cat 驱动 */
+.gt-chip--cat {
+  --ga: var(--cat);
+  --ga-ink: var(--cat-ink);
+  --ga-soft: var(--cat-soft);
+}
+
+.gt-filter__label {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  padding-right: 2px;
+}
+
+.gt-chip__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ga);
+  box-shadow: 0 0 10px var(--ga);
+}
+
+.gt-chip__count {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-1);
+  color: var(--text-3);
+  transition: all 0.24s ease;
+}
+.gt-chip[aria-pressed='true'] .gt-chip__count {
+  background: color-mix(in srgb, var(--ga) 22%, transparent);
+  border-color: color-mix(in srgb, var(--ga) 34%, transparent);
+  color: var(--ga-ink);
+}
+
+/* ---------------------------------------------------------------
+   11. StatsBar
+   --------------------------------------------------------------- */
+.gt-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gt-stat {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-1);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  box-shadow: var(--shadow-1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.gt-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: var(--border-2);
+}
+.gt-stat::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--sc, var(--brand)), transparent);
+}
+.gt-stat::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--sc, var(--brand));
+  opacity: calc(var(--glow-strength) * 0.22);
+  filter: blur(26px);
+  pointer-events: none;
+}
+
+.gt-stat__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+
+.gt-stat__value {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--sc-ink, var(--text-1));
+  letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------------------------------
+   12. CountdownText
+   --------------------------------------------------------------- */
+/*
+ * 所有子项统一为等高、垂直居中的盒子。
+ * 不能用 align-items:baseline —— .gt-digit 是 overflow:hidden 的行内块，
+ * 其基线会被合成为盒子下边缘，会和冒号错位。
+ */
+.gt-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--text-1);
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.gt-count--sm {
+  font-size: 15px;
+  font-weight: 600;
+}
+.gt-count--md {
+  font-size: 22px;
+  font-weight: 700;
+}
+.gt-count--lg {
+  font-size: clamp(26px, 6.4vw, 34px);
+  font-weight: 700;
+}
+
+.gt-count.is-warn {
+  color: var(--warn-ink);
+}
+.gt-count.is-critical {
+  color: var(--danger-ink);
+}
+.gt-count.is-ended,
+.gt-count.is-permanent {
+  color: var(--text-3);
+  font-weight: 600;
+}
+.gt-count--lg.is-ended,
+.gt-count--lg.is-permanent {
+  font-size: clamp(20px, 4.6vw, 24px);
+}
+
+/* 单个数字槽：等宽 1ch（tabular-nums 下即一位数字宽），秒位跳动不改变布局 */
+.gt-digit {
+  position: relative;
+  display: inline-block;
+  width: 1ch;
+  height: 1.15em;
+  overflow: hidden;
+  perspective: 240px;
+}
+
+.gt-digit__v {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform-origin: 50% 0%;
+  backface-visibility: hidden;
+  animation: gt-digit-roll 0.42s cubic-bezier(0.22, 1.1, 0.36, 1) both;
+}
+
+.gt-count__sep {
+  display: inline-grid;
+  place-items: center;
+  height: 1.15em;
+  opacity: 0.45;
+  padding: 0 0.05em;
+}
+
+.gt-count__unit {
+  display: inline-grid;
+  place-items: center;
+  height: 1.15em;
+  font-size: 0.56em;
+  font-weight: 600;
+  opacity: 0.75;
+  padding: 0 0.22em 0 0.06em;
+  font-family: var(--font-ui);
+}
+
+.gt-count__static {
+  font-family: var(--font-ui);
+}
+
+/* ---------------------------------------------------------------
+   13. ActivityCard
+   --------------------------------------------------------------- */
+.gt-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  padding: 16px 16px 14px 20px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border-1);
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  animation: gt-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.32s ease,
+    border-color 0.32s ease, filter 0.4s ease, opacity 0.4s ease;
+}
+
+/* 左侧游戏色条 */
+.gt-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--ga), var(--ga2));
+  opacity: 0.95;
+  z-index: 3;
+}
+
+/* 顶部高光 */
+.gt-card::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--card-top-sheen), transparent);
+  z-index: 3;
+}
+
+/* banner 背景 + 遮罩 */
+.gt-card__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.16;
+  filter: saturate(1.1);
+  transform: scale(1.04);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+  z-index: 0;
+}
+[data-theme='light'] .gt-card__bg {
+  opacity: 0.1;
+}
+.gt-card__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-elev) 40%, transparent) 0%, var(--bg-elev) 88%);
+}
+
+/* hover 跟随光晕 */
+.gt-card__halo {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(
+    320px circle at var(--mx) var(--my),
+    color-mix(in srgb, var(--ga) 26%, transparent),
+    transparent 62%
+  );
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gt-card__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .gt-card:hover {
+    transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-5px) scale(1.012);
+    border-color: color-mix(in srgb, var(--ga) 42%, transparent);
+    box-shadow: var(--shadow-3), 0 0 var(--glow-blur) -12px var(--ga);
+  }
+  .gt-card:hover .gt-card__halo {
+    opacity: 1;
+  }
+  .gt-card:hover .gt-card__bg {
+    transform: scale(1.1);
+    opacity: 0.22;
+  }
+  [data-theme='light'] .gt-card:hover .gt-card__bg {
+    opacity: 0.15;
+  }
+}
+
+/* 紧急态 */
+.gt-card.is-warn {
+  border-color: color-mix(in srgb, var(--warn) 48%, transparent);
+  animation: gt-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
+    gt-breathe 2.8s ease-in-out 0.5s infinite;
+}
+.gt-card.is-critical {
+  border-color: var(--danger);
+  animation: gt-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
+    gt-pulse 1.15s ease-in-out 0.4s infinite;
+}
+
+/* 已结束 / 已完成 */
+.gt-card.is-ended {
+  filter: saturate(0.25) brightness(0.94);
+  opacity: 0.72;
+}
+[data-theme='light'] .gt-card.is-ended {
+  filter: saturate(0.2) brightness(0.99);
+  opacity: 0.78;
+}
+.gt-card.is-done {
+  filter: saturate(0.3);
+  opacity: 0.82;
+}
+.gt-card.is-toggling {
+  animation: gt-pop-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 头部 */
+.gt-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.gt-card__game {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  background: var(--ga-soft);
+  border: 1px solid color-mix(in srgb, var(--ga) 30%, transparent);
+  color: var(--ga-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex: none;
+}
+.gt-card__game i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ga);
+  box-shadow: 0 0 8px var(--ga);
+  flex: none;
+}
+
+.gt-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex: none;
+  background: var(--cat-soft);
+  color: var(--cat-ink);
+  border: 1px solid color-mix(in srgb, var(--cat) 28%, transparent);
+}
+.gt-badge[data-cat='gacha'] {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--cat) 22%, transparent),
+    color-mix(in srgb, var(--ga) 18%, transparent)
+  );
+  letter-spacing: 0.06em;
+}
+.gt-badge[data-cat='version'] {
+  border-style: dashed;
+}
+.gt-badge[data-cat='notice'] {
+  font-weight: 600;
+}
+
+.gt-badge--manual {
+  background: var(--bg-sunken);
+  color: var(--text-3);
+  border: 1px dashed var(--border-2);
+}
+
+.gt-card__title {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.45;
+  color: var(--text-1);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  margin-bottom: 4px;
+  transition: color 0.24s ease;
+}
+.gt-card a.gt-card__title:hover {
+  color: var(--ga-ink);
+}
+/* 有外链的标题是真实可点元素：保证移动端点击热区 ≥44px（SPEC 6.7） */
+.gt-card a.gt-card__title {
+  padding: 10px 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.gt-card__meta {
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+
+.gt-card__foot {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-1);
+}
+
+.gt-card__cdlabel {
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+/* 完成勾选圆钮 */
+.gt-check {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-3);
+  transition: color 0.22s ease, transform 0.2s ease;
+}
+.gt-check:hover {
+  color: var(--success-ink);
+  transform: scale(1.06);
+}
+.gt-check:active {
+  transform: scale(0.94);
+}
+.gt-check__ring {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.6;
+  transition: opacity 0.24s ease, background-color 0.28s ease, border-color 0.28s ease,
+    transform 0.28s cubic-bezier(0.34, 1.5, 0.5, 1);
+}
+.gt-check[aria-pressed='true'] {
+  color: var(--success);
+}
+.gt-check[aria-pressed='true'] .gt-check__ring {
+  opacity: 1;
+  background: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 18px -4px var(--success);
+}
+.gt-check__svg {
+  position: relative;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+.gt-check__path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  transition: stroke-dashoffset 0.34s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.gt-check[aria-pressed='true'] .gt-check__path {
+  stroke: var(--text-inv);
+  stroke-dashoffset: 0;
+  animation: gt-draw-check 0.38s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+[data-theme='dark'] .gt-check[aria-pressed='true'] .gt-check__path,
+:root:not([data-theme='light']) .gt-check[aria-pressed='true'] .gt-check__path {
+  stroke: #04140e;
+}
+.gt-check__burst {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--success);
+  opacity: 0;
+  pointer-events: none;
+}
+.gt-check[data-burst='true'] .gt-check__burst {
+  animation: gt-check-burst 0.6s ease-out;
+}
+
+/* ---------------------------------------------------------------
+   14. 卡片栅格（响应式硬指标）
+   --------------------------------------------------------------- */
+.gt-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .gt-grid {
+    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .gt-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1600px) {
+  .gt-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------------
+   15. StaleBanner
+   --------------------------------------------------------------- */
+.gt-stale {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--warn) 42%, transparent);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  overflow: hidden;
+  animation: gt-fade-up 0.4s ease-out both;
+}
+.gt-stale::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--warn) 16%, transparent),
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: gt-sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.gt-stale__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warn) 22%, transparent);
+  color: var(--warn-ink);
+}
+.gt-stale__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.gt-stale__detail {
+  display: block;
+  font-size: 12px;
+  opacity: 0.85;
+  margin-top: 2px;
+  word-break: break-word;
+}
+.gt-stale__btn {
+  flex: none;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent);
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  color: var(--warn-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s ease, transform 0.18s ease;
+}
+.gt-stale__btn:hover {
+  background: color-mix(in srgb, var(--warn) 28%, transparent);
+  transform: translateY(-1px);
+}
+@media (max-width: 560px) {
+  .gt-stale {
+    flex-wrap: wrap;
+  }
+  .gt-stale__btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+
+/* ---------------------------------------------------------------
+   16. CompletedSection
+   --------------------------------------------------------------- */
+.gt-completed {
+  border-radius: 18px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.gt-completed__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+.gt-completed__head:hover {
+  background: var(--bg-sunken);
+}
+
+.gt-completed__chev {
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  color: var(--text-3);
+}
+.gt-completed__chev[data-open='true'] {
+  transform: rotate(180deg);
+}
+
+.gt-completed__badge {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--success-soft);
+  color: var(--success-ink);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+/* 0fr -> 1fr 高度过渡，无需魔法数字 */
+.gt-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.gt-collapse[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.gt-collapse__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.gt-collapse__pad {
+  padding: 2px 14px 16px;
+}
+.gt-collapse__pad .gt-card {
+  filter: saturate(0.32);
+  opacity: 0.86;
+}
+.gt-collapse__pad .gt-card:hover {
+  filter: saturate(0.8);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------
+   17. SkeletonGrid
+   --------------------------------------------------------------- */
+.gt-skel {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border-1);
+  background: var(--bg-glass);
+  min-height: 200px;
+  padding: 16px 16px 14px 20px;
+}
+.gt-skel::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--skeleton-sheen);
+  opacity: 0.5;
+}
+.gt-skel__sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, var(--skeleton-sheen), transparent 80%);
+  transform: translateX(-120%);
+  animation: gt-shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: var(--d, 0ms);
+  pointer-events: none;
+}
+.gt-skel__bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--skeleton-base);
+  margin-bottom: 10px;
+}
+
+/* ---------------------------------------------------------------
+   18. EmptyState
+   --------------------------------------------------------------- */
+.gt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 52px 20px;
+  text-align: center;
+  border-radius: 20px;
+  border: 1px dashed var(--border-2);
+  background: var(--bg-sunken);
+  animation: gt-fade-up 0.45s ease-out both;
+}
+.gt-empty__art {
+  animation: gt-float 5s ease-in-out infinite;
+  filter: drop-shadow(0 12px 26px color-mix(in srgb, var(--brand) 22%, transparent));
+}
+.gt-empty__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+.gt-empty__hint {
+  font-size: 13.5px;
+  color: var(--text-3);
+  max-width: 42ch;
+  line-height: 1.65;
+}
+
+/* ---------------------------------------------------------------
+   19. 弹窗（tdesign Dialog 重度定制）
+   --------------------------------------------------------------- */
+.gt-dialog .t-dialog {
+  padding: 0 !important;
+  border-radius: 22px !important;
+  border: 1px solid var(--border-2) !important;
+  background: var(--bg-elev) !important;
+  box-shadow: var(--shadow-3) !important;
+  overflow: hidden;
+  color: var(--text-1) !important;
+}
+.gt-dialog .t-dialog__header,
+.gt-dialog .t-dialog__body,
+.gt-dialog .t-dialog__footer {
+  padding: 0 !important;
+  margin: 0 !important;
+  color: inherit !important;
+}
+.gt-dialog .t-dialog__close {
+  top: 16px !important;
+  right: 16px !important;
+  color: var(--text-3) !important;
+  z-index: 5;
+}
+.gt-dialog .t-dialog__close:hover {
+  color: var(--text-1) !important;
+  background: var(--bg-elev-2) !important;
+}
+.gt-dialog .t-dialog__mask {
+  background: var(--bg-overlay) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.gt-dlg {
+  position: relative;
+  overflow: hidden;
+}
+.gt-dlg__glow {
+  position: absolute;
+  inset: -60% 20% auto 20%;
+  height: 220px;
+  background: radial-gradient(50% 60% at 50% 50%, var(--brand), transparent 70%);
+  opacity: calc(var(--glow-strength) * 0.42);
+  filter: blur(46px);
+  pointer-events: none;
+}
+.gt-dlg__head {
+  position: relative;
+  padding: 22px 22px 14px;
+  border-bottom: 1px solid var(--border-1);
+}
+.gt-dlg__title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: 0.01em;
+}
+.gt-dlg__sub {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 3px;
+}
+.gt-dlg__body {
+  position: relative;
+  padding: 18px 22px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gt-dlg__foot {
+  position: relative;
+  padding: 14px 22px 20px;
+  display: flex;
+  gap: 10px;
+}
+
+/* 分段切换（登录/注册） */
+.gt-seg {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-1);
+  margin-top: 14px;
+}
+.gt-seg__btn {
+  position: relative;
+  z-index: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.24s ease;
+}
+.gt-seg__btn[aria-selected='true'] {
+  color: var(--text-1);
+}
+.gt-seg__ind {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 10px;
+  background: var(--bg-elev-3);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-1);
+  transition: transform 0.34s cubic-bezier(0.34, 1.3, 0.5, 1);
+}
+.gt-seg__ind[data-i='1'] {
+  transform: translateX(100%);
+}
+
+/* 表单 */
+.gt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gt-field__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+.gt-field__req {
+  color: var(--danger-ink);
+  margin-left: 2px;
+}
+.gt-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-2);
+  background: var(--bg-sunken);
+  color: var(--text-1);
+  font-size: 14.5px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.gt-input::placeholder {
+  color: var(--text-3);
+}
+.gt-input:hover {
+  border-color: var(--border-strong);
+}
+.gt-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: var(--bg-elev-2);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.gt-input[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+.gt-input::-webkit-calendar-picker-indicator {
+  filter: var(--picker-filter, none);
+  cursor: pointer;
+  opacity: 0.7;
+}
+:root:not([data-theme='light']) .gt-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+select.gt-input {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-3) 50%),
+    linear-gradient(135deg, var(--text-3) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% + 2px), calc(100% - 13px) calc(50% + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+select.gt-input option {
+  background: var(--bg-elev);
+  color: var(--text-1);
+}
+
+.gt-field__err {
+  font-size: 12px;
+  color: var(--danger-ink);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: gt-fade-in 0.2s ease-out both;
+}
+
+.gt-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
+  color: var(--danger-ink);
+  animation: gt-fade-up 0.25s ease-out both;
+}
+
+.gt-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: gt-spin 0.7s linear infinite;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------
+   20. 布局工具
+   --------------------------------------------------------------- */
+.gt-shell {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 18px 16px 64px;
+}
+
+@media (min-width: 1024px) {
+  .gt-shell {
+    padding: 26px 28px 80px;
+  }
+  .gt-header__inner {
+    padding: 10px 28px;
+  }
+}
+
+.gt-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  text-transform: uppercase;
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .gt-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ---------------------------------------------------------------
+   21. 无障碍：降低动效
+   --------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .gt-bg__grad,
+  .gt-bg__canvas,
+  .gt-bg__noise,
+  .gt-skel__sheen,
+  .gt-stale::before,
+  .gt-brand__mark::after,
+  .gt-empty__art {
+    animation: none !important;
+  }
+
+  .gt-bg__canvas {
+    display: none;
+  }
+
+  .gt-card:hover {
+    transform: none !important;
+  }
+
+  .gt-digit__v {
+    animation: none !important;
+  }
+
+  .gt-refresh-icon[data-spin='true'] {
+    animation: gt-spin 1.4s linear infinite !important;
+  }
+  .gt-spinner {
+    animation: gt-spin 1.4s linear infinite !important;
+  }
+  .gt-bindspin {
+    animation: gt-spin 1.4s linear infinite !important;
+  }
+}
+
+/* ---------------------------------------------------------------
+   22. 账号绑定弹窗（AccountBindingDialog）
+   手机端硬要求：不裁切 / 90dvh 可滚 / 热区 >=44px /
+   长 Cookie 换行不撑破 / 输入框不被虚拟键盘顶飞
+   --------------------------------------------------------------- */
+.gt-dialog--bind .t-dialog__position {
+  padding: 16px !important;
+}
+.gt-dialog--bind .t-dialog {
+  width: min(620px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: 90vh;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+}
+.gt-dialog--bind .t-dialog__body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.gt-bind {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+}
+
+.gt-bind__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: none;
+}
+.gt-bind__close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -10px -8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.gt-bind__close:hover {
+  background: var(--bg-elev-2);
+  color: var(--text-1);
+}
+
+.gt-bind__body {
+  /* 弹窗内唯一滚动容器 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  flex: 1;
+  gap: 14px;
+  padding-bottom: 14px;
+  scroll-padding-block: 24px;
+}
+.gt-bind__foot {
+  flex: none;
+  border-top: 1px solid var(--border-1);
+  background: var(--bg-elev);
+}
+
+.gt-bind__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.gt-bindspin {
+  animation: gt-spin 0.8s linear infinite;
+  flex: none;
+}
+
+/* ---- 单家绑定卡片 ---- */
+.gt-bindcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+.gt-bindcard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--ga), var(--ga2));
+  opacity: 0.9;
+}
+.gt-bindcard[data-state='bound'] {
+  border-color: color-mix(in srgb, var(--success) 34%, transparent);
+  background: linear-gradient(180deg, var(--success-soft), transparent 62%), var(--bg-sunken);
+}
+.gt-bindcard[data-state='invalid'] {
+  border-color: color-mix(in srgb, var(--danger) 42%, transparent);
+  background: linear-gradient(180deg, var(--danger-soft), transparent 62%), var(--bg-sunken);
+}
+
+.gt-bindcard__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.gt-bindcard__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+.gt-bindcard__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ga);
+  box-shadow: 0 0 10px var(--ga);
+  flex: none;
+}
+.gt-bindcard__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-elev-2);
+  color: var(--text-3);
+  border: 1px solid var(--border-1);
+}
+.gt-bindcard__status[data-state='bound'] {
+  background: var(--success-soft);
+  color: var(--success-ink);
+  border-color: color-mix(in srgb, var(--success) 34%, transparent);
+}
+.gt-bindcard__status[data-state='invalid'] {
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  border-color: color-mix(in srgb, var(--danger) 34%, transparent);
+}
+
+.gt-bindcard__games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gt-bindcard__gchip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--ga-soft);
+  color: var(--ga-ink);
+  border: 1px solid color-mix(in srgb, var(--ga) 28%, transparent);
+}
+
+/* ---- 已绑定信息 ---- */
+.gt-bindinfo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border-1);
+}
+.gt-bindinfo > div {
+  min-width: 0;
+}
+.gt-bindinfo__wide {
+  grid-column: 1 / -1;
+}
+.gt-bindinfo dt {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-bottom: 2px;
+}
+.gt-bindinfo dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-1);
+  word-break: break-all;
+}
+.gt-bindinfo__mask {
+  font-family: var(--font-num);
+  letter-spacing: 0.02em;
+  color: var(--text-2) !important;
+  font-weight: 500 !important;
+}
+
+/* ---- 提示条 ---- */
+.gt-bindalert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
+  color: var(--danger-ink);
+  word-break: break-word;
+  animation: gt-fade-up 0.24s ease-out both;
+}
+.gt-bindalert--ok {
+  background: var(--success-soft);
+  border-color: color-mix(in srgb, var(--success) 34%, transparent);
+  color: var(--success-ink);
+}
+.gt-bindalert__icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---- 输入表单 ---- */
+.gt-bindform {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gt-bindform__label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.gt-bindform__need {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.55;
+}
+.gt-bindta {
+  width: 100%;
+  min-height: 92px;
+  max-height: 200px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-2);
+  background: var(--bg-elev-2);
+  color: var(--text-1);
+  font-family: var(--font-num);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  /* 长 Cookie 强制换行，不撑破布局 */
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  /* 键盘弹起时 scrollIntoView 的留白 */
+  scroll-margin-block: 80px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gt-bindta::placeholder {
+  color: var(--text-3);
+  opacity: 0.85;
+}
+.gt-bindta:focus {
+  outline: none;
+  border-color: var(--ga);
+  box-shadow: 0 0 0 3px var(--ga-soft);
+}
+
+.gt-bindform__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gt-bindform__hint {
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.55;
+}
+
+.gt-bindbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* 移动端热区 >= 44px */
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-2);
+  background: var(--bg-elev-2);
+  color: var(--text-1);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease,
+    opacity 0.2s ease;
+}
+.gt-bindbtn:hover:not(:disabled) {
+  background: var(--bg-elev-3);
+  border-color: var(--border-strong);
+}
+.gt-bindbtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.gt-bindbtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.gt-bindbtn--primary {
+  flex: 1;
+  min-width: 120px;
+  background: linear-gradient(120deg, var(--ga), var(--ga2));
+  border-color: transparent;
+  color: var(--text-on-accent);
+}
+[data-theme='light'] .gt-bindbtn--primary {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+.gt-bindbtn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  border-color: transparent;
+}
+.gt-bindbtn--danger {
+  color: var(--danger-ink);
+  border-color: color-mix(in srgb, var(--danger) 34%, transparent);
+  background: var(--danger-soft);
+}
+.gt-bindbtn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  border-color: var(--danger);
+}
+
+/* ---- 折叠图文步骤 ---- */
+.gt-binddetails {
+  border-radius: 12px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-elev-2);
+  overflow: hidden;
+}
+.gt-binddetails > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ga-ink);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.gt-binddetails > summary::-webkit-details-marker {
+  display: none;
+}
+.gt-binddetails > summary::before {
+  content: '▸';
+  margin-right: 7px;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+.gt-binddetails[open] > summary::before {
+  transform: rotate(90deg);
+}
+.gt-binddetails > summary:hover {
+  background: var(--bg-elev-3);
+}
+.gt-binddetails__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 12px 13px;
+  border-top: 1px solid var(--border-1);
+}
+.gt-bind__pathhead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+}
+.gt-bind__steps {
+  margin: 0;
+  padding-left: 20px;
+  list-style: decimal;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gt-bind__steps li {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.gt-bind__tip {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--warn-ink);
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+}
+.gt-bind__site {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 36px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ga-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+}
+
+/* ---- 安全说明 ---- */
+.gt-bindsafe {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, transparent);
+}
+.gt-bindsafe__icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--brand-ink);
+}
+.gt-bindsafe strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.gt-bindsafe p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.gt-bindsafe p:last-child {
+  margin-bottom: 0;
+}
+.gt-bindsafe p strong {
+  display: inline;
+  color: var(--danger-ink);
+}
+
+@media (max-width: 480px) {
+  .gt-dialog--bind .t-dialog__position {
+    padding: 8px !important;
+  }
+  .gt-dialog--bind .t-dialog {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 18px !important;
+  }
+  .gt-bind .gt-dlg__head {
+    padding: 16px 14px 12px;
+  }
+  .gt-bind__body {
+    padding: 14px 14px 12px;
+  }
+  .gt-bind__foot {
+    padding: 10px 14px 14px;
+  }
+  .gt-bindinfo {
+    grid-template-columns: 1fr;
+  }
+  .gt-bindform__row .gt-bindbtn {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------------------------------------------------------------
+   23. 账号任务（AccountTaskSection / AccountTaskCard）
+   --------------------------------------------------------------- */
+.gt-atsection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gt-athead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gt-athead__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px 0 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-1);
+  cursor: pointer;
+}
+.gt-athead__toggle:hover {
+  background: var(--bg-sunken);
+}
+.gt-athead__chev {
+  transition: transform 0.24s ease;
+  color: var(--text-3);
+}
+.gt-athead__chev[data-open='false'] {
+  transform: rotate(-90deg);
+}
+.gt-athead__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.gt-athead__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.gt-athead__meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.gt-atbody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gt-atwarn {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  color: var(--warn-ink);
+}
+.gt-atwarn__link {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.gt-atgame {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.gt-atgame__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ga-ink);
+  letter-spacing: 0.02em;
+}
+.gt-atgame__title i {
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--ga), var(--ga2));
+}
+.gt-atgame__warn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  border: 1px solid color-mix(in srgb, var(--warn) 28%, transparent);
+}
+
+.gt-atgrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .gt-atgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .gt-atgrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1600px) {
+  .gt-atgrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---- 任务卡片：与 ActivityCard 同款毛玻璃 / 辉光 / 圆角 ---- */
+.gt-atcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 15px 12px 18px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border-1);
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  isolation: isolate;
+  animation: gt-fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+.gt-atcard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--ga), var(--ga2));
+  opacity: 0.95;
+  z-index: 3;
+}
+.gt-atcard::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--card-top-sheen), transparent);
+  z-index: 3;
+}
+.gt-atcard__halo {
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  height: 150px;
+  background: radial-gradient(50% 60% at 50% 50%, var(--ga), transparent 70%);
+  opacity: calc(var(--glow-strength) * 0.22);
+  filter: blur(38px);
+  pointer-events: none;
+  z-index: 0;
+}
+.gt-atcard > *:not(.gt-atcard__halo) {
+  position: relative;
+  z-index: 2;
+}
+@media (hover: hover) and (pointer: fine) {
+  .gt-atcard:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--ga) 42%, transparent);
+    box-shadow: var(--shadow-2), 0 0 var(--glow-blur) -14px var(--ga);
+  }
+}
+.gt-atcard[data-done='true'] {
+  border-color: color-mix(in srgb, var(--success) 32%, transparent);
+}
+
+.gt-atcard__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.gt-atbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: var(--bg-elev-2);
+  color: var(--text-2);
+  border: 1px solid var(--border-1);
+}
+.gt-atbadge[data-period='daily'] {
+  background: rgba(110, 168, 255, 0.16);
+  color: var(--brand-ink);
+  border-color: color-mix(in srgb, var(--brand) 32%, transparent);
+}
+.gt-atbadge[data-period='weekly'] {
+  background: rgba(157, 123, 255, 0.16);
+  color: var(--brand-2);
+  border-color: color-mix(in srgb, var(--brand-2) 34%, transparent);
+}
+.gt-atbadge[data-period='season'] {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+  border-color: color-mix(in srgb, var(--warn) 32%, transparent);
+}
+.gt-atbadge[data-period='permanent'] {
+  background: var(--bg-sunken);
+  color: var(--text-3);
+}
+.gt-atbadge--sync {
+  background: var(--success-soft);
+  color: var(--success-ink);
+  border-color: color-mix(in srgb, var(--success) 32%, transparent);
+}
+.gt-atcard__ratio {
+  font-family: var(--font-num);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.gt-atcard__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.35;
+  word-break: break-word;
+}
+.gt-atcard__tick {
+  color: var(--success);
+  flex: none;
+}
+
+.gt-atlist {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gt-atitem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.gt-atitem__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gt-atitem__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gt-atitem[data-done='true'] .gt-atitem__label {
+  color: var(--text-3);
+}
+.gt-atitem__num {
+  font-family: var(--font-num);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+  flex: none;
+}
+.gt-atitem__num em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.gt-atitem__check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--success);
+}
+.gt-atitem__circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.6px solid var(--border-strong);
+}
+.gt-atitem__detail {
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+.gt-atbar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-1);
+  overflow: hidden;
+}
+.gt-atbar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ga), var(--ga2));
+  box-shadow: 0 0 10px -2px var(--ga);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.gt-atitem[data-done='true'] .gt-atbar__fill {
+  background: linear-gradient(90deg, var(--success), var(--success-ink));
+  box-shadow: 0 0 10px -2px var(--success);
+}
+
+.gt-atcard__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-1);
+}
+.gt-atcard__resetlabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+
+/* ---- 未绑定引导 ---- */
+.gt-atinvite {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed color-mix(in srgb, var(--brand) 40%, transparent);
+  background: linear-gradient(120deg, var(--brand-soft), transparent 70%), var(--bg-glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
+.gt-atinvite__icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.gt-atinvite__text {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.gt-atinvite__text strong {
+  font-size: 14px;
+  color: var(--text-1);
+}
+.gt-atinvite__text span {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+.gt-atinvite__btn {
+  flex: none;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 0;
+  background: linear-gradient(120deg, var(--brand), var(--brand-2));
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.gt-atinvite__btn:hover {
+  filter: brightness(1.1);
+}
+.gt-atinvite__btn:active {
+  transform: translateY(1px);
+}
+
+/* ---- 已绑定但同步失败 ---- */
+.gt-atfail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent);
+}
+.gt-atfail__icon {
+  flex: none;
+  color: var(--warn-ink);
+}
+.gt-atfail__text {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gt-atfail__text strong {
+  font-size: 13.5px;
+  color: var(--text-1);
+}
+.gt-atfail__text span {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--warn-ink);
+  word-break: break-word;
+}
+.gt-atfail__acts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gt-atfail__acts .gt-bindbtn--primary {
+  flex: none;
+  min-width: 0;
+  background: linear-gradient(120deg, var(--brand), var(--brand-2));
+  color: #fff;
+}
+
+/* =====================================================================
+   16. 风格 1 · 清新轻量化・柔和卡片风（仅作用于明亮主题）
+   定位：极浅冷灰/雾白底 + 加大圆角 + 细微渐变底 + 极淡内阴影
+   + hover 轻微上浮 + 马卡龙低饱和标签 + 放大加粗倒计时
+   + 去硬分割线改间距 + 角落极淡游戏元素水印。
+   仅在 [data-theme='light'] 生效，不触碰深色主题与其它逻辑。
+   ===================================================================== */
+[data-theme='light'] {
+  /* 极浅冷灰 / 雾白底，弃纯白刺眼 */
+  --bg-base: #f3f5fb;
+  --bg-base-2: #eaeef7;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #f4f6fc;
+  --bg-elev-3: #e9edf6;
+  --bg-glass: rgba(255, 255, 255, 0.72);
+  --bg-glass-hover: rgba(255, 255, 255, 0.92);
+  --bg-sunken: rgba(18, 24, 42, 0.035);
+
+  /* 加大圆角 */
+  --card-radius: 22px;
+  --card-top-sheen: rgba(255, 255, 255, 0.95);
+
+  /* 更柔和、近乎无影的浅色阴影 + 辉光收敛 */
+  --shadow-1: 0 1px 2px rgba(31, 41, 71, 0.05), 0 3px 12px rgba(31, 41, 71, 0.06);
+  --shadow-2: 0 4px 16px rgba(31, 41, 71, 0.08), 0 14px 32px rgba(31, 41, 71, 0.07);
+  --shadow-3: 0 12px 30px rgba(31, 41, 71, 0.1), 0 24px 56px rgba(31, 41, 71, 0.09);
+  --glow-strength: 0.16;
+  --glow-blur: 20px;
+
+  /* 氛围层再压淡，保持清爽工具属性 */
+  --aurora-1: rgba(63, 111, 224, 0.06);
+  --aurora-2: rgba(122, 82, 216, 0.05);
+  --aurora-3: rgba(15, 162, 115, 0.04);
+  --grid-line: rgba(20, 26, 38, 0.022);
+  --particle-alpha: 0.12;
+
+  --border-1: rgba(18, 24, 42, 0.07);
+  --border-2: rgba(18, 24, 42, 0.12);
+}
+
+/* ---------- 页面氛围：雾白底 + 极淡晕染，去重影 ---------- */
+[data-theme='light'] .gt-bg {
+  background: linear-gradient(180deg, #f6f8fc 0%, #eef1f8 100%);
+}
+
+/* ---------- 顶栏：去除生硬分割线，改用极淡下边距过渡 ---------- */
+[data-theme='light'] .gt-header {
+  border-bottom: 1px solid rgba(18, 24, 42, 0.05);
+}
+
+/* ---------- 通用玻璃面：轻微渐变 + 极淡内阴影 ---------- */
+[data-theme='light'] .gt-surface,
+[data-theme='light'] .gt-glass {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(244, 246, 251, 0.12)),
+    var(--bg-glass);
+  box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* ---------- 统计卡：柔和卡片化 ---------- */
+[data-theme='light'] .gt-stat {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(244, 246, 251, 0.16)),
+    var(--bg-glass);
+  border-color: rgba(18, 24, 42, 0.06);
+  box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+[data-theme='light'] .gt-stat__label {
+  opacity: 0.82;
+}
+
+/* ---------- 筛选 chip：更圆润、更低饱和 ---------- */
+[data-theme='light'] .gt-chip {
+  border-radius: 16px;
+  border-color: rgba(18, 24, 42, 0.08);
+  background: rgba(255, 255, 255, 0.7);
+}
+[data-theme='light'] .gt-filter__label {
+  opacity: 0.85;
+}
+
+/* ===================================================================
+   活动卡片 — 风格 1 核心
+   =================================================================== */
+[data-theme='light'] .gt-card {
+  /* 细微渐变底 + 极淡内阴影（顶/左高光内描边） + 角落游戏色水印 */
+  background:
+    radial-gradient(130px 120px at 100% 0%, color-mix(in srgb, var(--ga) 11%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(245, 247, 252, 0.22) 58%, rgba(238, 241, 248, 0.32) 100%),
+    var(--bg-glass);
+  border-color: rgba(18, 24, 42, 0.07);
+  box-shadow:
+    var(--shadow-1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+/* 左侧游戏色条：收窄、降饱和，贴合马卡龙低饱和 */
+[data-theme='light'] .gt-card::before {
+  width: 3px;
+  opacity: 0.8;
+}
+
+/* hover：去掉生硬 3D 倾斜，改为干净轻微上浮 + 柔和辉光 */
+@media (hover: hover) and (pointer: fine) {
+  [data-theme='light'] .gt-card:hover {
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--ga) 34%, transparent);
+    box-shadow:
+      var(--shadow-3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+      0 0 var(--glow-blur) -14px var(--ga);
+  }
+  [data-theme='light'] .gt-card:hover .gt-card__bg {
+    opacity: 0.14;
+    transform: scale(1.06);
+  }
+}
+
+/* 卡片内辅助文字：降透明度，让倒计时数字成为视觉重心 */
+[data-theme='light'] .gt-card__meta,
+[data-theme='light'] .gt-card__cdlabel {
+  opacity: 0.82;
+}
+
+/* 去硬分割线：卡片脚用间距替代 1px 描边 */
+[data-theme='light'] .gt-card__foot {
+  border-top: 0;
+  padding-top: 14px;
+  gap: 14px;
+}
+
+/* 游戏胶囊 + 分类徽章：马卡龙低饱和色块（淡底 + 柔描边） */
+[data-theme='light'] .gt-card__game {
+  background: color-mix(in srgb, var(--ga) 15%, #ffffff 85%);
+  border-color: color-mix(in srgb, var(--ga) 26%, transparent);
+  color: var(--ga-ink);
+}
+[data-theme='light'] .gt-badge {
+  background: color-mix(in srgb, var(--cat) 14%, #ffffff 86%);
+  border-color: color-mix(in srgb, var(--cat) 22%, transparent);
+  color: var(--cat-ink);
+  letter-spacing: 0.04em;
+}
+[data-theme='light'] .gt-badge[data-cat='gacha'] {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--cat) 18%, #ffffff 82%),
+    color-mix(in srgb, var(--ga) 14%, #ffffff 86%)
+  );
+}
+
+/* ---------- 倒计时数字：放大 + 加粗，作为视觉重心 ---------- */
+[data-theme='light'] .gt-count--md {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: 0.015em;
+}
+[data-theme='light'] .gt-count--lg {
+  font-size: clamp(30px, 7.2vw, 42px);
+  font-weight: 780;
+  letter-spacing: 0.018em;
+}
+[data-theme='light'] .gt-count--lg.is-ended,
+[data-theme='light'] .gt-count--lg.is-permanent {
+  font-size: clamp(20px, 4.8vw, 25px);
+}
+[data-theme='light'] .gt-count__unit {
+  opacity: 0.7;
+}
+[data-theme='light'] .gt-count__sep {
+  opacity: 0.4;
+}
