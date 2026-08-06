@@ -1,0 +1,16 @@
+# Koyeb 声明式部署配置 —— 五游活动倒计时台
+# 用法：Koyeb 控制台 Create App → 从 GitHub 导入本仓库 → Koyeb 读取本文件自动配置
+name: game-timer
+services:
+  - name: web
+    dockerfile: Dockerfile
+    instance_types:
+      - free
+    regions:
+      - fra            # 免费层可选区域：fra（法兰克福）/ was（华盛顿）
+    ports:
+      - port: 3001
+        protocol: http
+    health_checks:
+      - port: 3001
+        path: /api/activities
