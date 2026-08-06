@@ -1,0 +1,17 @@
+# 构建上下文排除项（Docker / Zeabur）
+node_modules/
+dist/
+data/
+*.db
+*.db-journal
+.secret
+.env
+.env.*
+.git/
+.gitignore
+Dockerfile
+.dockerignore
+render.yaml
+qa-shots/
+npm-debug.log*
+vite.config.ts.timestamp-*.mjs
