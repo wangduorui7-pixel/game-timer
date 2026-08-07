@@ -10,6 +10,9 @@ import { APP_CONFIG } from '../config';
 import { ApiError, apiGetActivities, apiRefreshActivities } from '../lib/api';
 import { useAuth } from './useAuth';
 
+/** 静态快照模式：构建时注入 VITE_STATIC=1，前端不请求后端，直接读打包内的 activities.json */
+const STATIC_MODE = (import.meta as { env?: Record<string, string> }).env?.VITE_STATIC === '1';
+
 export interface ActivitiesState {
   snapshots: GameSnapshot[];
   /** 全部 snapshot 扁平合并后的活动列表（永久活动沉底，其余按截止时间升序） */
@@ -53,6 +56,28 @@ export function useActivities(games: GameId[]): ActivitiesState {
       const list = gamesKey ? (gamesKey.split(',') as GameId[]) : [];
       const seq = ++seqRef.current;
 
+      // 静态快照模式：直接从打包内联的 activities.json 读取，不请求后端、不轮询
+      if (STATIC_MODE) {
+        try {
+          const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || './';
+          const url = new URL('activities.json', new URL(base, location.href)).href;
+          const res = await fetch(url).then((r) => r.json());
+          if (seq !== seqRef.current) return;
+          setSnapshots(res.snapshots ?? []);
+          hasDataRef.current = true;
+          setError(null);
+        } catch {
+          if (seq !== seqRef.current) return;
+          setError('活动快照加载失败');
+        } finally {
+          if (seq === seqRef.current) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+        }
+        return;
+      }
+
       if (force) setRefreshing(true);
       else if (!hasDataRef.current) setLoading(true);
 
@@ -84,6 +109,7 @@ export function useActivities(games: GameId[]): ActivitiesState {
   // 5 分钟轮询；页面隐藏时跳过，恢复可见且已过期就立即补拉
   useEffect(() => {
     if (authLoading) return;
+    if (STATIC_MODE) return; // 静态模式不轮询后端
     let lastRun = Date.now();
 
     const tick = (): void => {
