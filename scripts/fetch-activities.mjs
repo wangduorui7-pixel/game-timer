@@ -2,8 +2,9 @@
 /**
  * 活动数据抓取脚本（自动更新核心）
  * - 米哈游三家（原神/崩铁/绝区零）直接调官方公告 API，实时解析
- * - 鸣潮/终末地：当前复用 public/activities.backup.json 的快照兜底（标记 stale）
- *   后续可补库洛/鹰角公告接口，升级为全实时
+ * - 鸣潮（库洛）：官网资讯静态 JSON（ArticleMenu），含 startTime / 分类
+ * - 终末地（鹰角）：web-news 公告接口（bulletin），含 displayTime / 分类 tab
+ * 三者均为实时抓取；任一失败自动回退 public/activities.backup.json（标记 stale）。
  * 输出标准 {snapshots:[...]}，前端 STATIC_MODE 直接读取。
  */
 import crypto from 'node:crypto';
@@ -18,12 +19,22 @@ const OUT = path.join(PUBLIC, 'activities.json');
 const BACKUP = path.join(PUBLIC, 'activities.backup.json');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
+const DAY = 86400000;
+
 // 米哈游三家公告接口（无 Cookie 即可访问）
 const MIHOYO = {
   genshin: 'https://hk4e-api.mihoyo.com/common/hk4e_cn/announcement/api/getAnnList?game=hk4e&game_biz=hk4e_cn&lang=zh-cn&bundle_id=hk4e_cn&platform=pc&region=cn_gf01&level=55&uid=100000000',
   starrail: 'https://hkrpg-api.mihoyo.com/common/hkrpg_cn/announcement/api/getAnnList?game=hkrpg&game_biz=hkrpg_cn&lang=zh-cn&bundle_id=hkrpg_cn&platform=pc&region=prod_gf_cn&level=70&uid=100000000',
   zzz: 'https://announcement-api.mihoyo.com/common/nap_cn/announcement/api/getAnnList?game=nap&game_biz=nap_cn&lang=zh-cn&bundle_id=nap_cn&platform=pc&region=prod_gf_cn&level=60&uid=100000000',
 };
+
+// 鸣潮（库洛）官网资讯 JSON
+const WUWA_ARTICLES = 'https://media-cdn-mingchao.kurogame.com/akiwebsite/website2.0/json/G152/zh/ArticleMenu.json';
+// 终末地（鹰角）web-news 公告接口
+const ENDFIELD_BULLETIN = 'https://web-news.hypergryph.com/api/bulletin?lang=zh-cn&code=endfield_web&page=1&pageSize=50';
+
+// 无明确结束时间时，按分类给一个“有效窗口”，避免活动一抓就显示“已结束”
+const WINDOW_MS = { activity: 14 * DAY, gacha: 21 * DAY, version: 30 * DAY, notice: 7 * DAY };
 
 const GAME_IDS = ['genshin', 'starrail', 'zzz', 'wuwa', 'endfield'];
 
@@ -32,7 +43,7 @@ function hashId(game, title, start) {
 }
 function parseTime(s) {
   if (!s) return 0;
-  const t = new Date(`${s.replace(' ', 'T')}+08:00`); // 米哈游时间为北京时间
+  const t = new Date(`${s.replace(' ', 'T')}+08:00`); // 北京时间
   return isNaN(t.getTime()) ? 0 : t.getTime();
 }
 function stripHtml(s) {
@@ -46,6 +57,37 @@ function classify(typeLabel) {
   return 'notice';
 }
 
+/** 从文本里尝试解析日期区间，返回最晚日期的 ms（北京时间 23:59:59）；解析不到返回 0 */
+function parseDateRange(text) {
+  if (!text) return 0;
+  const re = /(20\d{2})[.\-/年](1[0-2]|0?[1-9])[.\-/月](3[01]|[12]\d|0?[1-9])日?/g;
+  const hits = [];
+  let m;
+  while ((m = re.exec(text))) {
+    const y = +m[1];
+    const mo = +m[2];
+    const d = +m[3];
+    const t = new Date(Date.UTC(y, mo - 1, d, 15, 59, 59)); // UTC 15:59 => 北京 23:59
+    if (!isNaN(t.getTime())) hits.push(t.getTime());
+  }
+  if (!hits.length) return 0;
+  return hits.length >= 2 ? Math.max(...hits) : hits[0];
+}
+
+/** 结束时间：优先用文本解析出的区间末日，否则用分类默认窗口 */
+function deriveEndTime(start, category, text) {
+  const parsed = parseDateRange(text);
+  if (parsed && parsed > start) return parsed;
+  return start + (WINDOW_MS[category] || WINDOW_MS.notice);
+}
+
+/** 从 HTML 里取第一张图作为 banner */
+function firstImg(html) {
+  const m = (html || '').match(/<img[^>]+src=["']([^"']+)["']/i) || (html || '').match(/<img[^>]+data-src=["']([^"']+)["']/i);
+  return m ? m[1] : undefined;
+}
+
+/* ----------------------------- 米哈游 ----------------------------- */
 async function fetchMihoyo(game, url) {
   const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
   const j = await r.json();
@@ -73,6 +115,84 @@ async function fetchMihoyo(game, url) {
   return acts;
 }
 
+/* ----------------------------- 鸣潮（库洛） ----------------------------- */
+function classifyWuwa(articleType) {
+  // 52 = 版本内容说明 / 活动说明（头部重磅，默认展示）
+  // 51 = 角色档案 / 资讯（默认隐藏，可在筛选器开启）
+  if (articleType === 52) return 'activity';
+  if (articleType === 51) return 'notice';
+  return 'notice';
+}
+function wuwaTypeLabel(articleType) {
+  return articleType === 52 ? '版本内容' : articleType === 51 ? '角色档案' : '资讯';
+}
+export async function fetchWuwa() {
+  const r = await fetch(WUWA_ARTICLES, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
+  const list = await r.json();
+  if (!Array.isArray(list)) throw new Error('unexpected shape');
+  const acts = [];
+  for (const a of list) {
+    const start = parseTime(a.startTime);
+    const category = classifyWuwa(a.articleType);
+    const text = `${a.articleTitle}\n${a.articleDesc}\n${a.articleContent}`;
+    const end = deriveEndTime(start, category, text);
+    // 过滤过旧公告（结束超过 30 天前），保持看板清爽
+    if (end < Date.now() - 30 * DAY) continue;
+    acts.push({
+      id: hashId('wuwa', `${a.articleId}|${a.articleTitle}`, a.startTime),
+      game: 'wuwa',
+      title: stripHtml(a.articleTitle),
+      type: wuwaTypeLabel(a.articleType),
+      category,
+      banner: firstImg(a.articleContent),
+      url: `https://mc.kurogames.com/main/news/detail/${a.articleId}`,
+      startTime: start,
+      endTime: end,
+      permanent: false,
+      source: 'api',
+    });
+  }
+  return acts;
+}
+
+/* ----------------------------- 终末地（鹰角） ----------------------------- */
+function classifyEndfield(tab, title) {
+  if (tab === 'events') return 'activity';
+  if (/寻访|特许|概率提升|卡池|凭证/.test(title)) return 'gacha';
+  if (/版本|更新说明|维护|补偿/.test(title)) return 'version';
+  if (tab === 'news') return 'notice';
+  return 'notice';
+}
+export async function fetchEndfield() {
+  const r = await fetch(ENDFIELD_BULLETIN, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
+  const j = await r.json();
+  if (j.code !== 0) throw new Error(`code=${j.code}`);
+  const acts = [];
+  for (const it of j?.data?.list || []) {
+    const start = (it.displayTime || 0) * 1000;
+    const category = classifyEndfield(it.tab, it.title || '');
+    const text = `${it.title}\n${it.brief}`;
+    const end = deriveEndTime(start, category, text);
+    // 过滤过旧公告（结束超过 30 天前），保持看板清爽
+    if (end < Date.now() - 30 * DAY) continue;
+    acts.push({
+      id: hashId('endfield', `${it.cid}|${it.title}`, String(start)),
+      game: 'endfield',
+      title: stripHtml(it.title),
+      type: it.tab || '公告',
+      category,
+      banner: it.cover || (it.extraCover || undefined),
+      url: `https://endfield.hypergryph.com/zh-cn/news/${it.cid}`,
+      startTime: start,
+      endTime: end,
+      permanent: false,
+      source: 'api',
+    });
+  }
+  return acts;
+}
+
+/* ----------------------------- 主流程 ----------------------------- */
 function loadBackup() {
   try {
     return JSON.parse(fs.readFileSync(BACKUP, 'utf8'));
@@ -86,6 +206,7 @@ async function main() {
   const backupByGame = {};
   if (backup) for (const s of backup.snapshots || []) backupByGame[s.game] = s;
 
+  const fetchers = { wuwa: fetchWuwa, endfield: fetchEndfield };
   const snapshots = [];
   for (const game of GAME_IDS) {
     const url = MIHOYO[game];
@@ -96,10 +217,19 @@ async function main() {
         console.log(`[${game}] 实时抓取 ${acts.length} 条`);
         continue;
       } catch (e) {
+        console.log(`[${game}] 米哈游实时抓取失败：${e.message}，回退备份`);
+      }
+    } else if (fetchers[game]) {
+      try {
+        const acts = await fetchers[game]();
+        snapshots.push({ game, fetchedAt: Date.now(), ok: true, stale: false, activities: acts });
+        console.log(`[${game}] 实时抓取 ${acts.length} 条`);
+        continue;
+      } catch (e) {
         console.log(`[${game}] 实时抓取失败：${e.message}，回退备份`);
       }
     }
-    // 鸣潮/终末地 或 抓取失败 → 备份兜底
+    // 抓取失败 → 备份兜底
     const b = backupByGame[game];
     if (b) snapshots.push({ ...b, stale: true });
     else snapshots.push({ game, fetchedAt: Date.now(), ok: false, stale: true, error: 'no data', activities: [] });
@@ -110,7 +240,12 @@ async function main() {
   console.log(`已写入 ${OUT} 总活动 ${total}`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+export { fetchMihoyo };
+
+const isMain = process.argv[1] && process.argv[1].endsWith('fetch-activities.mjs');
+if (isMain) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
