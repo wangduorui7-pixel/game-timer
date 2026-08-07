@@ -38,9 +38,12 @@ const WINDOW_MS = { activity: 14 * DAY, gacha: 21 * DAY, version: 30 * DAY, noti
 
 const GAME_IDS = ['genshin', 'starrail', 'zzz', 'wuwa', 'endfield'];
 
-// 版本更新说明 / 修复公告 / 系统公告 / 维护补偿等纯资讯：永不展示
-const HIDDEN_CATEGORIES = new Set(['version', 'notice']);
-const visibleOnly = (acts) => acts.filter((a) => !HIDDEN_CATEGORIES.has(a.category));
+// 分类关键词：祈愿/卡池 → gacha；版本更新/修复/维护/补偿等纯资讯 → 归为 version（看板默认隐藏，但保留数据不删除）
+const GACHA_KW = /祈愿|卡池|概率\s*UP|跃迁|寻访|特许|复刻|返场|角色\s*UP|武器\s*UP|限定\s*UP|概率提升/i;
+const INFO_KW =
+  /版本更新说明|更新修复|修复与优化|修复公告|维护公告|停服|停机维护|补偿说明|问题修复|bug\s*修复|故障说明|更新公告|版本更新|例行维护|临时维护|已知问题|问题说明|优化说明|游戏优化|版本优化|玩法优化/i;
+const isGachaText = (t) => GACHA_KW.test(t || '');
+const isPureInfo = (t) => INFO_KW.test(t || '');
 
 function hashId(game, title, start) {
   return `${game}:${crypto.createHash('md5').update(`${title}|${start}`).digest('hex')}`;
@@ -53,13 +56,14 @@ function parseTime(s) {
 function stripHtml(s) {
   return (s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
-// 同时看 type_label 与标题：星铁/绝区零的「公告」是泛标签，真实活动（含「活动」二字）会被误判成 notice 而隐藏，故用标题兜底
-function classify(typeLabel, title) {
-  const t = `${typeLabel || ''} ${title || ''}`;
-  if (/活动|赛事|挑战/.test(t)) return 'activity';
-  if (/祈愿|卡池|概率UP|跃迁|寻访|特许/.test(t)) return 'gacha';
-  if (/版本|更新说明|更新公告|维护|修复|优化|补偿/.test(t)) return 'version';
-  return 'notice';
+// 米哈游以「分组频道 type_label」为主信号、标题兜底；默认倾向展示，避免把真实活动误删为公告
+function classifyMihoyo(groupType, title) {
+  const g = groupType || '';
+  if (/活动/.test(g)) return 'activity';
+  if (/祈愿|卡池/.test(g)) return 'gacha';
+  if (isGachaText(title)) return 'gacha';
+  if (isPureInfo(title)) return 'version'; // 纯资讯：看板默认隐藏，但保留数据
+  return 'activity'; // 默认展示（星铁「公告」分组下的真实活动都在此）
 }
 
 /** 从文本里尝试解析日期区间，返回最晚日期的 ms（北京时间 23:59:59）；解析不到返回 0 */
@@ -100,14 +104,15 @@ async function fetchMihoyo(game, url) {
   const acts = [];
   for (const g of j?.data?.list || []) {
     for (const a of g.list || []) {
+      const title = stripHtml(a.title);
       const start = parseTime(a.start_time);
       const end = parseTime(a.end_time);
       acts.push({
-        id: hashId(game, a.title, a.start_time),
+        id: hashId(game, title, a.start_time),
         game,
-        title: stripHtml(a.title),
-        type: a.type_label || '',
-        category: classify(a.type_label, a.title),
+        title,
+        type: g.type_label || a.type_label || '',
+        category: classifyMihoyo(g.type_label, title),
         banner: a.banner || undefined,
         url: a.url || undefined,
         startTime: start,
@@ -164,9 +169,9 @@ export async function fetchWuwa() {
 function classifyEndfield(tab, title) {
   if (tab === 'events') return 'activity';
   if (/寻访|特许|概率提升|卡池|凭证/.test(title)) return 'gacha';
-  if (/版本|更新说明|维护|补偿/.test(title)) return 'version';
-  if (tab === 'news') return 'notice';
-  return 'notice';
+  if (isPureInfo(title)) return 'version'; // 纯版本/维护/补偿说明：看板默认隐藏，但保留数据
+  // 其余（含 news 分组）默认展示，避免误删真实活动
+  return 'activity';
 }
 export async function fetchEndfield() {
   const r = await fetch(ENDFIELD_BULLETIN, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
@@ -217,26 +222,26 @@ async function main() {
     const url = MIHOYO[game];
     if (url) {
       try {
-        const acts = visibleOnly(await fetchMihoyo(game, url));
+        const acts = await fetchMihoyo(game, url);
         snapshots.push({ game, fetchedAt: Date.now(), ok: true, stale: false, activities: acts });
-        console.log(`[${game}] 实时抓取 ${acts.length} 条（已过滤版本/公告类）`);
+        console.log(`[${game}] 实时抓取 ${acts.length} 条（版本/公告类默认隐藏）`);
         continue;
       } catch (e) {
         console.log(`[${game}] 米哈游实时抓取失败：${e.message}，回退备份`);
       }
     } else if (fetchers[game]) {
       try {
-        const acts = visibleOnly(await fetchers[game]());
+        const acts = await fetchers[game]();
         snapshots.push({ game, fetchedAt: Date.now(), ok: true, stale: false, activities: acts });
-        console.log(`[${game}] 实时抓取 ${acts.length} 条（已过滤版本/公告类）`);
+        console.log(`[${game}] 实时抓取 ${acts.length} 条（版本/公告类默认隐藏）`);
         continue;
       } catch (e) {
         console.log(`[${game}] 实时抓取失败：${e.message}，回退备份`);
       }
     }
-    // 抓取失败 → 备份兜底（同样过滤掉版本/公告类）
+    // 抓取失败 → 备份兜底（保留全部，版本/公告类由看板默认隐藏）
     const b = backupByGame[game];
-    if (b) snapshots.push({ ...b, stale: true, activities: visibleOnly(b.activities) });
+    if (b) snapshots.push({ ...b, stale: true, activities: b.activities });
     else snapshots.push({ game, fetchedAt: Date.now(), ok: false, stale: true, error: 'no data', activities: [] });
   }
 
