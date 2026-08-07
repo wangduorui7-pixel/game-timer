@@ -6,6 +6,14 @@
  * - 终末地（鹰角）：web-news 公告接口（bulletin），含 displayTime / 分类 tab
  * 三者均为实时抓取；任一失败自动回退 public/activities.backup.json（标记 stale）。
  * 输出标准 {snapshots:[...]}，前端 STATIC_MODE 直接读取。
+ *
+ * 分类原则（用户诉求：只展示「本版本需要完成的活动 + 当前祈愿」，其余默认隐藏）：
+ *   1) 祈愿/卡池/概率类 → gacha（最高优先级，先于活动判定）
+ *   2) 纯资讯/运营/推广类（PV、周边、社媒、防沉迷、公平运营、问卷、版本说明等）→ version（看板默认隐藏，数据保留）
+ *   3) 真正的限时玩法/活动 → activity（展示）
+ *   4) 带书名号的标题兜底为 activity
+ *   5) 其余默认隐藏（version），避免垃圾漏出
+ * 米哈游三家公告混在同一「公告」频道、无法靠频道名区分，故统一以标题关键词判定。
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -20,6 +28,10 @@ const BACKUP = path.join(PUBLIC, 'activities.backup.json');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
 const DAY = 86400000;
+/** 仅保留当前版本窗口内的公告（约一个版本 ~6 周），避免把旧版本活动当「进行中」 */
+const RECENCY_MS = 45 * DAY;
+/** 无明确结束时间时，按发布时间顺延一个版本窗口作为有效截止，避免一抓就「已结束」 */
+const ROLLING_WINDOW = 45 * DAY;
 
 // 米哈游三家公告接口（无 Cookie 即可访问）
 const MIHOYO = {
@@ -33,17 +45,34 @@ const WUWA_ARTICLES = 'https://media-cdn-mingchao.kurogame.com/akiwebsite/websit
 // 终末地（鹰角）web-news 公告接口
 const ENDFIELD_BULLETIN = 'https://web-news.hypergryph.com/api/bulletin?lang=zh-cn&code=endfield_web&page=1&pageSize=50';
 
-// 无明确结束时间时，按分类给一个“有效窗口”，避免活动一抓就显示“已结束”
-const WINDOW_MS = { activity: 14 * DAY, gacha: 21 * DAY, version: 30 * DAY, notice: 7 * DAY };
-
 const GAME_IDS = ['genshin', 'starrail', 'zzz', 'wuwa', 'endfield'];
 
-// 分类关键词：祈愿/卡池 → gacha；版本更新/修复/维护/补偿等纯资讯 → 归为 version（看板默认隐藏，但保留数据不删除）
-const GACHA_KW = /祈愿|卡池|概率\s*UP|跃迁|寻访|特许|复刻|返场|角色\s*UP|武器\s*UP|限定\s*UP|概率提升/i;
-const INFO_KW =
-  /版本更新说明|更新修复|修复与优化|修复公告|维护公告|停服|停机维护|补偿说明|问题修复|bug\s*修复|故障说明|更新公告|版本更新|例行维护|临时维护|已知问题|问题说明|优化说明|游戏优化|版本优化|玩法优化/i;
-const isGachaText = (t) => GACHA_KW.test(t || '');
-const isPureInfo = (t) => INFO_KW.test(t || '');
+/* ----------------------------- 分类关键词 ----------------------------- */
+// 祈愿/卡池/概率类 → gacha（最高优先级）
+const GACHA_KW =
+  /祈愿|卡池|概率\s*UP|概率提升|跃迁|寻访|特许|唤取|复刻|返场|角色\s*UP|武器\s*UP|UP！|限定\s*UP|概率公示|概率up|概率ＵＰ/i;
+
+// 纯资讯 / 运营 / 推广类 → 隐藏（看板默认不显示）
+const JUNK_KW =
+  /PV|音乐专辑|周边|优惠|上新|商城|手办|服饰|同人|画集|设定集|售卖|特卖|折扣|礼包|礼盒|小程序|企业微信|社媒|聚合|防沉迷|公平运营|运营声明|用户协议|隐私政策|社区|问卷|有奖|调研|内容一览|版本更新说明|更新维护|维护预告|游戏优化|已知问题|修复与优化|修复公告|问题修复|补偿说明|停机维护|停服|版本预下载|版本内容说明|版本资讯|版本前瞻|研发通讯|前瞻|新增关卡|任务说明|剧情说明|内容说明|无名勋礼|纪行|空月祝福|私募基金|封禁处理公示|处罚账号公示|处罚公示|打击代充|代充|不删档|不限量测试|招募|预下载|实名|健康|账号安全|安全公告|数据面板|实时数据|技术测试|云·终末地|云·鸣潮|玩家社区|研发终端|FAQ|谨防诈骗|诈骗|防诈/i;
+
+// 真正的限时玩法 / 活动 → activity（展示）
+const EVENT_KW =
+  /活动|挑战|双倍|签到|秘境|竞速|答题|收集|探索|限时|联动|赛季|庆典|嘉年华|作战|试炼|远征|讨伐|竞演|对决|大作战|网页活动|连线|骇入|玩法|盛典|游赏|秘藏|材料.*双倍|兵器|征讨|悬赏|竞猜|解谜|募集|预约|肉鸽|塔防|跑酷|音游|征召|申领|复刻|模块|共创|同游|同行|共游|企划/i;
+
+// 带书名号且非纯公告/说明的标题兜底为活动
+const BRACKET_EVENT = /「[^」]{1,20}」/;
+const BRACKET_EXCLUDE = /更新公告|版本说明|维护|预告|任务说明|内容说明|研发通讯/;
+
+function classifyEvent(title, { bracketFallback = true } = {}) {
+  const t = title || '';
+  if (/内容一览|版本节目单|版本前瞻总览/.test(t)) return 'version'; // 版本总览非具体祈愿
+  if (GACHA_KW.test(t)) return 'gacha';
+  if (JUNK_KW.test(t)) return 'version';
+  if (EVENT_KW.test(t)) return 'activity';
+  if (bracketFallback && BRACKET_EVENT.test(t) && !BRACKET_EXCLUDE.test(t)) return 'activity';
+  return 'version'; // 默认隐藏，避免垃圾漏出
+}
 
 function hashId(game, title, start) {
   return `${game}:${crypto.createHash('md5').update(`${title}|${start}`).digest('hex')}`;
@@ -56,17 +85,11 @@ function parseTime(s) {
 function stripHtml(s) {
   return (s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
-// 米哈游以「分组频道 type_label」为主信号、标题兜底；默认倾向展示，避免把真实活动误删为公告
-function classifyMihoyo(groupType, title) {
-  const g = groupType || '';
-  if (/活动/.test(g)) return 'activity';
-  if (/祈愿|卡池/.test(g)) return 'gacha';
-  if (isGachaText(title)) return 'gacha';
-  if (isPureInfo(title)) return 'version'; // 纯资讯：看板默认隐藏，但保留数据
-  return 'activity'; // 默认展示（星铁「公告」分组下的真实活动都在此）
+/** 滚动截止：以发布时间顺延一个版本窗口，且保证不早于“当前+3天” */
+function rollingEnd(start) {
+  return Math.max(start + ROLLING_WINDOW, Date.now() + 3 * DAY);
 }
-
-/** 从文本里尝试解析日期区间，返回最晚日期的 ms（北京时间 23:59:59）；解析不到返回 0 */
+/** 从文本里尝试解析日期区间，返回最晚日期的 ms；解析不到返回 0 */
 function parseDateRange(text) {
   if (!text) return 0;
   const re = /(20\d{2})[.\-/年](1[0-2]|0?[1-9])[.\-/月](3[01]|[12]\d|0?[1-9])日?/g;
@@ -82,17 +105,17 @@ function parseDateRange(text) {
   if (!hits.length) return 0;
   return hits.length >= 2 ? Math.max(...hits) : hits[0];
 }
-
-/** 结束时间：优先用文本解析出的区间末日，否则用分类默认窗口 */
-function deriveEndTime(start, category, text) {
+/** 结束时间：优先文本解析出的区间末日；鸣潮/终末地无明确结束时间则滚动顺延 */
+function deriveEndTime(start, text) {
   const parsed = parseDateRange(text);
   if (parsed && parsed > start) return parsed;
-  return start + (WINDOW_MS[category] || WINDOW_MS.notice);
+  return rollingEnd(start);
 }
-
 /** 从 HTML 里取第一张图作为 banner */
 function firstImg(html) {
-  const m = (html || '').match(/<img[^>]+src=["']([^"']+)["']/i) || (html || '').match(/<img[^>]+data-src=["']([^"']+)["']/i);
+  const m =
+    (html || '').match(/<img[^>]+src=["']([^"']+)["']/i) ||
+    (html || '').match(/<img[^>]+data-src=["']([^"']+)["']/i);
   return m ? m[1] : undefined;
 }
 
@@ -106,13 +129,16 @@ async function fetchMihoyo(game, url) {
     for (const a of g.list || []) {
       const title = stripHtml(a.title);
       const start = parseTime(a.start_time);
-      const end = parseTime(a.end_time);
+      const endRaw = parseTime(a.end_time);
+      const category = classifyEvent(title, { bracketFallback: false });
+      // 米哈游接口自带 end_time，优先使用；缺失时滚动顺延，避免「已结束」
+      const end = endRaw || rollingEnd(start);
       acts.push({
         id: hashId(game, title, a.start_time),
         game,
         title,
         type: g.type_label || a.type_label || '',
-        category: classifyMihoyo(g.type_label, title),
+        category,
         banner: a.banner || undefined,
         url: a.url || undefined,
         startTime: start,
@@ -126,13 +152,6 @@ async function fetchMihoyo(game, url) {
 }
 
 /* ----------------------------- 鸣潮（库洛） ----------------------------- */
-function classifyWuwa(articleType) {
-  // 52 = 版本内容说明 / 活动说明（头部重磅，默认展示）
-  // 51 = 角色档案 / 资讯（默认隐藏，可在筛选器开启）
-  if (articleType === 52) return 'activity';
-  if (articleType === 51) return 'notice';
-  return 'notice';
-}
 function wuwaTypeLabel(articleType) {
   return articleType === 52 ? '版本内容' : articleType === 51 ? '角色档案' : '资讯';
 }
@@ -141,17 +160,20 @@ export async function fetchWuwa() {
   const list = await r.json();
   if (!Array.isArray(list)) throw new Error('unexpected shape');
   const acts = [];
+  const now = Date.now();
   for (const a of list) {
     const start = parseTime(a.startTime);
-    const category = classifyWuwa(a.articleType);
+    if (start < now - RECENCY_MS) continue; // 仅保留当前版本窗口
+    if (a.articleType === 51) continue; // 角色档案/研究员手记等非活动，直接跳过（等同隐藏）
+    const title = stripHtml(a.articleTitle);
+    const category = classifyEvent(title, { bracketFallback: true });
     const text = `${a.articleTitle}\n${a.articleDesc}\n${a.articleContent}`;
-    const end = deriveEndTime(start, category, text);
-    // 过滤过旧公告（结束超过 30 天前），保持看板清爽
-    if (end < Date.now() - 30 * DAY) continue;
+    const end = deriveEndTime(start, text);
+    if (end < Date.now()) continue; // 已结束的旧活动不展示
     acts.push({
       id: hashId('wuwa', `${a.articleId}|${a.articleTitle}`, a.startTime),
       game: 'wuwa',
-      title: stripHtml(a.articleTitle),
+      title,
       type: wuwaTypeLabel(a.articleType),
       category,
       banner: firstImg(a.articleContent),
@@ -166,32 +188,27 @@ export async function fetchWuwa() {
 }
 
 /* ----------------------------- 终末地（鹰角） ----------------------------- */
-function classifyEndfield(tab, title) {
-  if (tab === 'events') return 'activity';
-  if (/寻访|特许|概率提升|卡池|凭证/.test(title)) return 'gacha';
-  if (isPureInfo(title)) return 'version'; // 纯版本/维护/补偿说明：看板默认隐藏，但保留数据
-  // 其余（含 news 分组）默认展示，避免误删真实活动
-  return 'activity';
-}
 export async function fetchEndfield() {
   const r = await fetch(ENDFIELD_BULLETIN, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
   const j = await r.json();
   if (j.code !== 0) throw new Error(`code=${j.code}`);
   const acts = [];
+  const now = Date.now();
   for (const it of j?.data?.list || []) {
     const start = (it.displayTime || 0) * 1000;
-    const category = classifyEndfield(it.tab, it.title || '');
+    if (start < now - RECENCY_MS) continue; // 仅保留当前版本窗口
+    const title = stripHtml(it.title);
+    const category = classifyEvent(title, { bracketFallback: true });
     const text = `${it.title}\n${it.brief}`;
-    const end = deriveEndTime(start, category, text);
-    // 过滤过旧公告（结束超过 30 天前），保持看板清爽
-    if (end < Date.now() - 30 * DAY) continue;
+    const end = deriveEndTime(start, text);
+    if (end < Date.now()) continue; // 已结束的旧活动不展示
     acts.push({
       id: hashId('endfield', `${it.cid}|${it.title}`, String(start)),
       game: 'endfield',
-      title: stripHtml(it.title),
+      title,
       type: it.tab || '公告',
       category,
-      banner: it.cover || (it.extraCover || undefined),
+      banner: it.cover || it.extraCover || undefined,
       url: `https://endfield.hypergryph.com/zh-cn/news/${it.cid}`,
       startTime: start,
       endTime: end,
