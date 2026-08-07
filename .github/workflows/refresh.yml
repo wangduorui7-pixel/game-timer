@@ -1,0 +1,36 @@
+name: 自动刷新活动数据
+# 每 6 小时自动抓取最新活动 → 构建静态版 → 部署到 GitHub Pages
+# 手动触发：仓库 Actions 页面 → Run workflow
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 安装依赖（含 dev，vite/tsc 需要）
+        run: npm ci --include=dev
+
+      - name: 抓取最新活动数据
+        run: node scripts/fetch-activities.mjs
+
+      - name: 构建静态快照版
+        run: VITE_STATIC=1 npm run build
+
+      - name: 部署到 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          commit_message: 'chore: 自动刷新活动数据'
