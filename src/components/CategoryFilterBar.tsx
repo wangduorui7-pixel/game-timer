@@ -8,7 +8,7 @@ export interface CategoryFilterBarProps {
 }
 
 /**
- * 分类筛选。默认只勾选 活动 / 祈愿 / 版本，「公告」是纯资讯营销，默认关闭。
+ * 分类筛选（仅 活动 / 祈愿）。版本更新说明、修复公告、系统公告等纯资讯已不再展示。
  * 与游戏筛选一致：多选、即时生效，选择由 usePrefs 持久化。
  */
 export function CategoryFilterBar({ selected, onChange, counts }: CategoryFilterBarProps) {

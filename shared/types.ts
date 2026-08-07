@@ -12,9 +12,9 @@ export const GAME_META: Record<GameId, { name: string; short: string; accent: st
 
 export type ActivityCategory = 'activity' | 'gacha' | 'notice' | 'version';
 
-export const CATEGORY_IDS: ActivityCategory[] = ['activity', 'gacha', 'version', 'notice'];
+export const CATEGORY_IDS: ActivityCategory[] = ['activity', 'gacha'];
 
-/** 默认展示的分类：版本更新说明（version）与公告（notice）是纯资讯，默认隐藏 */
+/** 默认且仅展示 活动 / 祈愿；版本更新说明、修复公告、系统公告等纯资讯已不再展示 */
 export const DEFAULT_CATEGORIES: ActivityCategory[] = ['activity', 'gacha'];
 
 export interface ActivityItem {

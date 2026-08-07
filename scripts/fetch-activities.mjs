@@ -38,6 +38,10 @@ const WINDOW_MS = { activity: 14 * DAY, gacha: 21 * DAY, version: 30 * DAY, noti
 
 const GAME_IDS = ['genshin', 'starrail', 'zzz', 'wuwa', 'endfield'];
 
+// 版本更新说明 / 修复公告 / 系统公告 / 维护补偿等纯资讯：永不展示
+const HIDDEN_CATEGORIES = new Set(['version', 'notice']);
+const visibleOnly = (acts) => acts.filter((a) => !HIDDEN_CATEGORIES.has(a.category));
+
 function hashId(game, title, start) {
   return `${game}:${crypto.createHash('md5').update(`${title}|${start}`).digest('hex')}`;
 }
@@ -49,11 +53,12 @@ function parseTime(s) {
 function stripHtml(s) {
   return (s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
-function classify(typeLabel) {
-  const t = typeLabel || '';
-  if (/活动/.test(t)) return 'activity';
-  if (/祈愿|卡池|概率UP|跃迁/.test(t)) return 'gacha';
-  if (/版本|更新说明/.test(t)) return 'version';
+// 同时看 type_label 与标题：星铁/绝区零的「公告」是泛标签，真实活动（含「活动」二字）会被误判成 notice 而隐藏，故用标题兜底
+function classify(typeLabel, title) {
+  const t = `${typeLabel || ''} ${title || ''}`;
+  if (/活动|赛事|挑战/.test(t)) return 'activity';
+  if (/祈愿|卡池|概率UP|跃迁|寻访|特许/.test(t)) return 'gacha';
+  if (/版本|更新说明|更新公告|维护|修复|优化|补偿/.test(t)) return 'version';
   return 'notice';
 }
 
@@ -102,7 +107,7 @@ async function fetchMihoyo(game, url) {
         game,
         title: stripHtml(a.title),
         type: a.type_label || '',
-        category: classify(a.type_label),
+        category: classify(a.type_label, a.title),
         banner: a.banner || undefined,
         url: a.url || undefined,
         startTime: start,
@@ -212,26 +217,26 @@ async function main() {
     const url = MIHOYO[game];
     if (url) {
       try {
-        const acts = await fetchMihoyo(game, url);
+        const acts = visibleOnly(await fetchMihoyo(game, url));
         snapshots.push({ game, fetchedAt: Date.now(), ok: true, stale: false, activities: acts });
-        console.log(`[${game}] 实时抓取 ${acts.length} 条`);
+        console.log(`[${game}] 实时抓取 ${acts.length} 条（已过滤版本/公告类）`);
         continue;
       } catch (e) {
         console.log(`[${game}] 米哈游实时抓取失败：${e.message}，回退备份`);
       }
     } else if (fetchers[game]) {
       try {
-        const acts = await fetchers[game]();
+        const acts = visibleOnly(await fetchers[game]());
         snapshots.push({ game, fetchedAt: Date.now(), ok: true, stale: false, activities: acts });
-        console.log(`[${game}] 实时抓取 ${acts.length} 条`);
+        console.log(`[${game}] 实时抓取 ${acts.length} 条（已过滤版本/公告类）`);
         continue;
       } catch (e) {
         console.log(`[${game}] 实时抓取失败：${e.message}，回退备份`);
       }
     }
-    // 抓取失败 → 备份兜底
+    // 抓取失败 → 备份兜底（同样过滤掉版本/公告类）
     const b = backupByGame[game];
-    if (b) snapshots.push({ ...b, stale: true });
+    if (b) snapshots.push({ ...b, stale: true, activities: visibleOnly(b.activities) });
     else snapshots.push({ game, fetchedAt: Date.now(), ok: false, stale: true, error: 'no data', activities: [] });
   }
 
